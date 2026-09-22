@@ -1,0 +1,5 @@
+#!/bin/sh
+# Stand-in for the JVM: records how it was called.
+printf '%s\n' "$@" > "$FAKE_JAVA_LOG"
+pwd >> "$FAKE_JAVA_LOG"
+env | grep -E '^HYTALE_SERVER_' | sort >> "$FAKE_JAVA_LOG"

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "manifestRevision": "test",
+  "entries": {
+    "core": {
+      "id": "core",
+      "category": "mods",
+      "serverTypes": [
+        "SERVER_TYPE_STICK_GAME"
+      ],
+      "version": "1.0.0",
+      "objectKey": "mods/stickgame/core.jar",
+      "unpacked": false
+    },
+    "common": {
+      "id": "common",
+      "category": "mods",
+      "serverTypes": [
+        "SERVER_TYPE_UNSPECIFIED"
+      ],
+      "version": "1.0.0",
+      "objectKey": "mods/shared/common.jar",
+      "unpacked": false
+    },
+    "lobby": {
+      "id": "lobby",
+      "category": "mods",
+      "serverTypes": [
+        "SERVER_TYPE_HUB",
+        "SERVER_TYPE_HUB_PVP"
+      ],
+      "version": "1.0.0",
+      "objectKey": "mods/hub/lobby.jar",
+      "unpacked": false
+    },
+    "tiki": {
+      "id": "tiki",
+      "category": "worldFiles",
+      "serverTypes": [
+        "SERVER_TYPE_STICK_GAME"
+      ],
+      "version": "1.0.0",
+      "objectKey": "worlds/stickgame/tiki_1.0.0.zip",
+      "unpacked": true
+    },
+    "arena": {
+      "id": "arena",
+      "category": "configs",
+      "serverTypes": [
+        "SERVER_TYPE_STICK_GAME"
+      ],
+      "version": "1.0.0",
+      "objectKey": "configs/stickgame/arena/settings.json",
+      "unpacked": false
+    },
+    "config": {
+      "id": "config",
+      "category": "root",
+      "serverTypes": [
+        "SERVER_TYPE_STICK_GAME"
+      ],
+      "version": "1.0.0",
+      "objectKey": "root/stickgame/config.json",
+      "unpacked": false
+    },
+    "hubconfig": {
+      "id": "hubconfig",
+      "category": "root",
+      "serverTypes": [
+        "SERVER_TYPE_HUB_PVP"
+      ],
+      "version": "1.0.0",
+      "objectKey": "root/hub/config.json",
+      "unpacked": false
+    }
+  }
+}
