@@ -62,7 +62,9 @@ while IFS="$(printf '\t')" read -r category id key unpacked; do
     # Drop the grouping folder directly under the category, keep the rest.
     under="${relative#"$prefix"}"
     rest="${under#*/}"
-    [ "$rest" != "$under" ] && [ -n "$rest" ] || fail "entry $id: key $key needs a grouping folder under $prefix"
+    if [ "$rest" = "$under" ] || [ -z "$rest" ]; then
+        fail "entry $id: key $key needs a grouping folder under $prefix"
+    fi
     case "/$rest/" in
         */../*) fail "entry $id: key $key walks upward" ;;
     esac
