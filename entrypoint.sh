@@ -1,5 +1,4 @@
 #!/bin/sh
-# Lays out a Hytale server from the DependSync volume and the creator's env, then runs it.
 set -eu
 
 mount="${RISE_DEPEND_MOUNT:-/dependfiles}"
@@ -29,7 +28,6 @@ fail() { echo "entrypoint: $*" >&2; exit 1; }
 wanted=$(printf '%s' "$types" | tr ',' '\n' | sed 's/^ *//;s/ *$//;/^$/d' \
     | tr '[:lower:]' '[:upper:]' | sed 's/^\(SERVER_TYPE_\)\{0,1\}/SERVER_TYPE_/' | jq -R . | jq -sc .)
 
-# One line per entry to copy: category, id, key, unpacked.
 selected=$(jq -r --argjson wanted "$wanted" '
     .entries[]
     | select(any(.serverTypes[]; . == "SERVER_TYPE_UNSPECIFIED" or (ascii_upcase | IN($wanted[]))))
