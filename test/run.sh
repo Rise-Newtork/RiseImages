@@ -60,7 +60,7 @@ check "$(cat "$app/mods/core.jar")" core "short type name accepted"
 # Hub: only its own mod and the shared one.
 run hub RISE_SERVER_TYPES=SERVER_TYPE_HUB
 check "$status" 0 "hub starts"
-check "$(ls "$app/mods" | tr '\n' ' ')" "common.jar lobby.jar " "hub mods"
+check "$(find "$app/mods" -mindepth 1 -printf '%f\n' | sort | tr '\n' ' ')" "common.jar lobby.jar " "hub mods"
 check "$([ -e "$app/universe" ] && echo present || echo absent)" absent "no world for hub"
 
 # Refusals.
