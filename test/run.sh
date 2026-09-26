@@ -31,7 +31,7 @@ run() {
 
 # Stick game: its own files plus the shared mod, not the hub's.
 run stick RISE_SERVER_TYPES=SERVER_TYPE_STICK_GAME RISE_GAME_PORT=5520 \
-    RISE_SERVER_META='{"containerName":"x"}' HYTALE_SERVER_SESSION_TOKEN=s HYTALE_SERVER_IDENTITY_TOKEN=i
+    RISE_SERVER_META='{"containerName":"x"}'
 check "$status" 0 "stick game starts"
 check "$(cat "$app/mods/core.jar")" core "mod copied"
 check "$(cat "$app/mods/common.jar")" common "shared mod copied"
@@ -44,16 +44,17 @@ check "$(head -1 "$log")" "-jar" "no jvm flags by default"
 check "$(sed -n 2p "$log")" "$here/fixtures/hytale/HytaleServer.jar" "jar from the volume"
 check "$(sed -n 3,4p "$log" | tr '\n' ' ')" "--bind 0.0.0.0:5520 " "bind"
 check "$(sed -n 5,6p "$log" | tr '\n' ' ')" "--assets $here/fixtures/hytale/Assets.zip " "assets"
-check "$(sed -n 7p "$log")" "--disable-file-watcher" "default server flags"
-check "$(sed -n 8p "$log")" "$app" "working directory"
-check "$(grep -c '^HYTALE_SERVER_' "$log")" 2 "tokens reach the server"
+check "$(sed -n 7,8p "$log" | tr '\n' ' ')" "--auth-mode insecure " "insecure by default"
+check "$(sed -n 9p "$log")" "--disable-file-watcher" "default server flags"
+check "$(sed -n 10p "$log")" "$app" "working directory"
 
 # Flags: jvm before -jar, server flags after the fixed ones.
-run flags RISE_SERVER_TYPES=STICK_GAME RISE_JVM_FLAGS="-Xmx2g -Xms1g" RISE_SERVER_FLAGS="--disable-sentry --allow-op" RISE_GAME_PORT=6000
+run flags RISE_SERVER_TYPES=STICK_GAME RISE_JVM_FLAGS="-Xmx2g -Xms1g" RISE_SERVER_FLAGS="--disable-sentry --allow-op" RISE_GAME_PORT=6000 RISE_AUTH_MODE=authenticated
 check "$status" 0 "flags run starts"
 check "$(sed -n 1,2p "$log" | tr '\n' ' ')" "-Xmx2g -Xms1g " "jvm flags first"
 check "$(sed -n 6p "$log")" "0.0.0.0:6000" "game port"
-check "$(sed -n 9,10p "$log" | tr '\n' ' ')" "--disable-sentry --allow-op " "server flags last"
+check "$(sed -n 10p "$log")" "authenticated" "auth mode from the env"
+check "$(sed -n 11,12p "$log" | tr '\n' ' ')" "--disable-sentry --allow-op " "server flags last"
 check "$(cat "$app/mods/core.jar")" core "short type name accepted"
 
 # Hub: only its own mod and the shared one.

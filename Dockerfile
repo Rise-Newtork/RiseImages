@@ -12,6 +12,7 @@ COPY entrypoint.sh /usr/local/bin/entrypoint
 
 ENV RISE_DEPEND_MOUNT=/dependfiles \
     RISE_GAME_PORT=5520 \
+    RISE_AUTH_MODE=insecure \
     RISE_SERVER_FLAGS=--disable-file-watcher
 
 WORKDIR /app

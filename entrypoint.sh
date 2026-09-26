@@ -8,6 +8,7 @@ types="${RISE_SERVER_TYPES:-}"
 game_port="${RISE_GAME_PORT:-5520}"
 jvm_flags="${RISE_JVM_FLAGS:-}"
 server_flags="${RISE_SERVER_FLAGS:---disable-file-watcher}"
+auth_mode="${RISE_AUTH_MODE:-insecure}"
 
 index="$mount/index.json"
 jar="$mount/hytale/HytaleServer.jar"
@@ -96,7 +97,7 @@ else
 fi
 
 cd "$app"
-log "starting Hytale on port $game_port for $types"
+log "starting Hytale on port $game_port for $types, auth mode $auth_mode"
 # Flags are whitespace-separated by design.
 # shellcheck disable=SC2086
-exec java $jvm_flags -jar "$jar" --bind "0.0.0.0:$game_port" --assets "$assets" $server_flags "$@"
+exec java $jvm_flags -jar "$jar" --bind "0.0.0.0:$game_port" --assets "$assets" --auth-mode "$auth_mode" $server_flags "$@"
