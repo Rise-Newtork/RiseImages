@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "manifestRevision": "test",
   "entries": {
     "core": {
@@ -42,6 +42,27 @@
       "version": "1.0.0",
       "objectKey": "worlds/stickgame/tiki_1.0.0.zip",
       "unpacked": true
+    },
+    "arena_skeleton": {
+      "id": "arena_skeleton",
+      "category": "worldFiles",
+      "serverTypes": [
+        "SERVER_TYPE_STICK_GAME"
+      ],
+      "version": "1.0.0",
+      "objectKey": "worlds/common/arena.bson",
+      "unpacked": false
+    },
+    "sg_tiki": {
+      "id": "sg_tiki",
+      "category": "worldFiles",
+      "serverTypes": [
+        "SERVER_TYPE_STICK_GAME"
+      ],
+      "version": "1.0.0",
+      "objectKey": "worlds/maps/sg_tiki_1.0.0.zip",
+      "unpacked": true,
+      "skeleton": "arena_skeleton"
     },
     "arena": {
       "id": "arena",

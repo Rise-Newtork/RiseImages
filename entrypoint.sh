@@ -23,22 +23,42 @@ fail() { echo "entrypoint: $*" >&2; exit 1; }
 [ -f "$assets" ] || fail "$assets is missing; DependSync has not installed Hytale"
 [ -w "$app" ] || fail "$app is not writable"
 
+# The shapes of index.json this image knows. 1 is from before an entry carried the skeleton its
+# chunks compose with, so on one of those no entry is a map pack component and maps stage as they
+# always did. Anything else is refused rather than half-read.
+schema=$(jq -r '.schemaVersion // empty' "$index")
+case "$schema" in
+    2) ;;
+    1) log "warning: $index is schema 1, from a DependSync before map relations; any map entry will be staged into universe/worlds" ;;
+    *) fail "$index is schema '$schema'; this image reads 1 or 2, so update the image or DependSync" ;;
+esac
+
 # Accepts STICK_GAME as well as SERVER_TYPE_STICK_GAME; compared case-insensitively
 # because the protocol spells one type SERVER_TYPE_DUEL_2v2.
 wanted=$(printf '%s' "$types" | tr ',' '\n' | sed 's/^ *//;s/ *$//;/^$/d' \
     | tr '[:lower:]' '[:upper:]' | sed 's/^\(SERVER_TYPE_\)\{0,1\}/SERVER_TYPE_/' | jq -R . | jq -sc .)
 
+# The last column is what to do with the entry: a map's chunks (it names a skeleton) and the
+# skeleton itself (something names it) are pack components, which the creator assembles into an
+# asset pack and binds in read-only. Nothing reads universe/worlds for a match.
 selected=$(jq -r --argjson wanted "$wanted" '
-    .entries[]
+    [.entries[] | .skeleton // empty] as $skeletons
+    | .entries[]
     | select(any(.serverTypes[]; . == "SERVER_TYPE_UNSPECIFIED" or (ascii_upcase | IN($wanted[]))))
-    | [.category, .id, .objectKey, (.unpacked // false)]
+    | [.category, .id, .objectKey, (.unpacked // false),
+       (if .skeleton != null or (.id | IN($skeletons[])) then "pack" else "stage" end)]
     | @tsv' "$index")
 
 [ -n "$selected" ] || log "warning: no entries in $index are tagged for $types"
 
 written=""
-while IFS="$(printf '\t')" read -r category id key unpacked; do
+while IFS="$(printf '\t')" read -r category id key unpacked role; do
     [ -n "$category" ] || continue
+
+    if [ "$role" = "pack" ]; then
+        log "$category $id -> not staged; it is a map pack component"
+        continue
+    fi
 
     case "$category" in
         mods) prefix="mods/"; dest="$app/mods" ;;

@@ -68,6 +68,16 @@ entrypoint selects the entries whose `serverTypes` include one of the wanted typ
 the category is a grouping folder and is dropped, so `configs/hub/hubs/shop.json` lands at
 `configs/hubs/shop.json`. An entry with `unpacked` is a directory named after its id.
 
+Two kinds of entry are deliberately staged nowhere: one that names a `skeleton` (a map's chunks)
+and one another entry names as its skeleton. Those are the halves of an instance template, which
+`../RiseContainerCreator` composes into an asset pack and binds in read-only at
+`$RISE_APP_DIR/mods/<pack>`; an instance resolves only against a registered pack, and nothing
+reads `universe/worlds` for a match. Every other `worldFiles` entry still stages there.
+
+`index.json`'s own `schemaVersion` must be 1 or 2. 2 is where the `skeleton` relation lives; 1 is
+from a DependSync before it, accepted with a warning, and on one of those nothing is a pack
+component so maps stage as they used to. Any other version is refused before the server starts.
+
 Anything unexpected aborts before the server starts: a key outside its category's prefix, a key
 with no grouping folder, a path that walks upward, a file missing from the volume, or two
 entries claiming the same target. The Hytale jar and `Assets.zip` come from `hytale/` on the
