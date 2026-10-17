@@ -2,3 +2,5 @@
 .github
 test
 README.md
+agent/build
+agent/.gradle

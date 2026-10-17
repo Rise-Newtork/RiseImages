@@ -41,6 +41,46 @@ entrypoint logs a warning and writes nothing, which is how the mods detect a dev
 `RISE_MANAGEMENT_PORT` is deliberately not read here: the server jar does not bind it, the mod
 inside does, and it learns the number from `servermeta.json`.
 
+## Sentry
+
+The server reports to Sentry through `agent/`, a small java agent the image builds and loads with
+`-javaagent` on every start. It reads `sentry` out of `RISE_SERVER_META`
+(`{"dsn": ..., "environment": ..., "release": ..., "logsLevel": ...}`); with that block absent or
+its `dsn` blank it does nothing, so a dev server reports nowhere. With a DSN:
+
+- every line the server and its mods log at `logsLevel` and up goes to Sentry Logs. `logsLevel` is
+  a java.util.logging name (`SEVERE`, `WARNING`, `INFO`, `FINE`, ...); blank is `INFO`, and an
+  unknown name is `INFO` with a warning on stderr;
+- until the server logs `Hytale Server Booted!` (the line the creator waits for), only SEVERE
+  lines go to Logs. Every boot prints the same few hundred lines; a boot that fails still carries
+  the last of them as breadcrumbs on its issue;
+- a few lines every server prints identically are never sent to Logs; they are listed, with the
+  reason for each, in `agent/src/main/java/com/risehytale/sentryagent/Noise.java`;
+- every SEVERE line becomes an issue, with its exception's stack trace when it has one, mods
+  included. An uncaught exception is `fatal`, and so is one that stops the server starting. A
+  WARNING with an exception stays a log line, as the server's own Sentry handler has it;
+- a stack trace printed to `System.out` or `System.err` (`printStackTrace()`) becomes one issue
+  and one log entry, not a line each. Issues are grouped by exception type and the first frame in
+  `com.risehytale` or `com.hypixel.hytale` (else the first outside the JDK), so a repeat lands on
+  the same issue whatever its message;
+- `server_name` is the container name, and events carry the tags `container`, `node`,
+  `server_types` and, on a hub, `hub_type` (log entries carry the same as attributes, plus
+  `logger`);
+- the password in a `user:password@host` is masked.
+
+It uses the Sentry SDK the server jar bundles and ships none of its own. It has to load before the
+server's logging starts, which is why it is an agent rather than a mod: a mod loads well after
+start-up, and the server's own Sentry handler only sees records with an exception and none from a
+third-party mod. Instead it subscribes to the root of `HytaleLogger`, through which every line
+passes, including `System.out` and `System.err`. Those two arrive one record per printed line,
+so the agent holds each stream's lines until one does not continue a stack trace (`\tat`,
+`Caused by:`, `... N more`, `Suppressed:`) or the stream has been quiet for 200ms. A printed
+exception that was also captured in the last 10 seconds, as the server does with a failed start,
+is not made an issue twice.
+
+The entrypoint always passes `--disable-sentry`, whatever `RISE_SERVER_FLAGS` says. Without it the
+server reports to Hypixel's Sentry, and its `Sentry.init` would replace the agent's.
+
 ## Environment
 
 The entrypoint reads these; the `Dockerfile` defaults are in brackets.
@@ -88,13 +128,19 @@ same volume; DependSync installs those with the official downloader, not from th
 ```bash
 docker build -t rise-hytale .
 sh test/run.sh
+(cd agent && ./gradlew test)
 ```
 
 `test/run.sh` runs the real entrypoint against `test/fixtures` with a fake `java` on the PATH
 that records its argv, so it checks the staging rules, the flag ordering, the default auth mode
 and each refusal without a JVM or a Docker daemon. It needs `jq`.
 
+The agent is built in the image's first stage and compiled against `io.sentry:sentry:8.30.0` and
+`org.mongodb:bson` without bundling either, since the server jar it runs beside carries both. Its
+tests cover reading the meta, rebuilding printed stack traces and which lines reach Logs; the
+logging hook itself needs the real server jar, which only exists on the DependSync volume.
+
 `.github/workflows/publish.yml` runs `shellcheck` over `entrypoint.sh`, `test/run.sh` and
-`test/bin/java` and then the harness, on every push and pull request. The image is built on
+`test/bin/java`, then the harness and the agent's tests, on every push and pull request. The image is built on
 every run and pushed to `ghcr.io/<owner>/rise-hytale` only for `v*` tags, tagged with the
 version and `latest`.

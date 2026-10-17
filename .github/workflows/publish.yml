@@ -14,6 +14,12 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y shellcheck jq
       - run: shellcheck entrypoint.sh test/run.sh test/bin/java
       - run: sh test/run.sh
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+      - run: chmod +x gradlew && ./gradlew --no-daemon test
+        working-directory: agent
 
   image:
     needs: test

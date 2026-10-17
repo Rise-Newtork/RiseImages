@@ -1,3 +1,12 @@
+# syntax=docker/dockerfile:1
+FROM eclipse-temurin:25-jdk AS agent
+WORKDIR /build
+COPY agent/gradlew agent/settings.gradle.kts agent/build.gradle.kts ./
+COPY agent/gradle ./gradle
+RUN chmod +x gradlew && ./gradlew --no-daemon dependencies --configuration compileClasspath
+COPY agent/src ./src
+RUN ./gradlew --no-daemon jar
+
 FROM eclipse-temurin:25-jre
 
 RUN apt-get update \
@@ -8,6 +17,7 @@ RUN apt-get update \
     && mkdir /app \
     && chown hytale:hytale /app
 
+COPY --from=agent /build/build/libs/sentry-agent.jar /opt/rise/sentry-agent.jar
 COPY entrypoint.sh /usr/local/bin/entrypoint
 
 ENV RISE_DEPEND_MOUNT=/dependfiles \

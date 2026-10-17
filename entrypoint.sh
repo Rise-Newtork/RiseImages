@@ -12,6 +12,7 @@ auth_mode="${RISE_AUTH_MODE:-insecure}"
 index="$mount/index.json"
 jar="$mount/hytale/HytaleServer.jar"
 assets="$mount/hytale/Assets.zip"
+sentry_agent=/opt/rise/sentry-agent.jar
 
 log() { echo "entrypoint: $*"; }
 fail() { echo "entrypoint: $*" >&2; exit 1; }
@@ -118,6 +119,10 @@ fi
 
 cd "$app"
 log "starting Hytale on port $game_port for $types, auth mode $auth_mode"
+# The agent reports to the Sentry project in RISE_SERVER_META and does nothing without one, so it
+# is always loaded. --disable-sentry is always passed: the server would otherwise report to
+# Hypixel's Sentry, and its own Sentry.init would replace the agent's.
 # Flags are whitespace-separated by design.
 # shellcheck disable=SC2086
-exec java $jvm_flags -jar "$jar" --bind "0.0.0.0:$game_port" --assets "$assets" --auth-mode "$auth_mode" $server_flags "$@"
+exec java -javaagent:"$sentry_agent" $jvm_flags -jar "$jar" --bind "0.0.0.0:$game_port" --assets "$assets" \
+    --auth-mode "$auth_mode" --disable-sentry $server_flags "$@"

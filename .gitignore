@@ -4,3 +4,7 @@
 # Agent-facing files: notes, plans, TODOs and scripts that are not part of the project.
 .local/
 CLAUDE.md
+
+# Gradle output of the Sentry java agent.
+agent/build/
+agent/.gradle/

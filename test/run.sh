@@ -45,21 +45,27 @@ check "$(grep -c 'map pack component' "$app.out")" 2 "both pack components expla
 check "$(cat "$app/configs/arena/settings.json")" '{"arena":1}' "config copied with its structure"
 check "$(cat "$app/config.json")" '{"Defaults":{"World":"tiki"}}' "root file copied to the root"
 check "$(cat "$app/servermeta.json")" '{"containerName":"x"}' "servermeta.json written"
-check "$(head -1 "$log")" "-jar" "no jvm flags by default"
-check "$(sed -n 2p "$log")" "$here/fixtures/hytale/HytaleServer.jar" "jar from the volume"
-check "$(sed -n 3,4p "$log" | tr '\n' ' ')" "--bind 0.0.0.0:5520 " "bind"
-check "$(sed -n 5,6p "$log" | tr '\n' ' ')" "--assets $here/fixtures/hytale/Assets.zip " "assets"
-check "$(sed -n 7,8p "$log" | tr '\n' ' ')" "--auth-mode insecure " "insecure by default"
-check "$(sed -n 9p "$log")" "--disable-file-watcher" "default server flags"
-check "$(sed -n 10p "$log")" "$app" "working directory"
+check "$(head -1 "$log")" "-javaagent:/opt/rise/sentry-agent.jar" "sentry agent loaded"
+check "$(sed -n 2p "$log")" "-jar" "no jvm flags by default"
+check "$(sed -n 3p "$log")" "$here/fixtures/hytale/HytaleServer.jar" "jar from the volume"
+check "$(sed -n 4,5p "$log" | tr '\n' ' ')" "--bind 0.0.0.0:5520 " "bind"
+check "$(sed -n 6,7p "$log" | tr '\n' ' ')" "--assets $here/fixtures/hytale/Assets.zip " "assets"
+check "$(sed -n 8,9p "$log" | tr '\n' ' ')" "--auth-mode insecure " "insecure by default"
+check "$(sed -n 10p "$log")" "--disable-sentry" "hypixel's sentry off"
+check "$(sed -n 11p "$log")" "--disable-file-watcher" "default server flags"
+check "$(sed -n 12p "$log")" "$app" "working directory"
 
 # Flags: jvm before -jar, server flags after the fixed ones.
-run flags RISE_SERVER_TYPES=STICK_GAME RISE_JVM_FLAGS="-Xmx2g -Xms1g" RISE_SERVER_FLAGS="--disable-sentry --allow-op" RISE_GAME_PORT=6000 RISE_AUTH_MODE=authenticated
+# The agent stays ahead of the node's jvm flags, and replacing the server flags does not turn
+# Hypixel's Sentry back on.
+run flags RISE_SERVER_TYPES=STICK_GAME RISE_JVM_FLAGS="-Xmx2g -Xms1g" RISE_SERVER_FLAGS="--allow-op" RISE_GAME_PORT=6000 RISE_AUTH_MODE=authenticated
 check "$status" 0 "flags run starts"
-check "$(sed -n 1,2p "$log" | tr '\n' ' ')" "-Xmx2g -Xms1g " "jvm flags first"
-check "$(sed -n 6p "$log")" "0.0.0.0:6000" "game port"
-check "$(sed -n 10p "$log")" "authenticated" "auth mode from the env"
-check "$(sed -n 11,12p "$log" | tr '\n' ' ')" "--disable-sentry --allow-op " "server flags last"
+check "$(sed -n 1p "$log")" "-javaagent:/opt/rise/sentry-agent.jar" "sentry agent before jvm flags"
+check "$(sed -n 2,3p "$log" | tr '\n' ' ')" "-Xmx2g -Xms1g " "jvm flags next"
+check "$(sed -n 7p "$log")" "0.0.0.0:6000" "game port"
+check "$(sed -n 11p "$log")" "authenticated" "auth mode from the env"
+check "$(sed -n 12p "$log")" "--disable-sentry" "hypixel's sentry off with server flags replaced"
+check "$(sed -n 13p "$log")" "--allow-op" "server flags last"
 check "$(cat "$app/mods/core.jar")" core "short type name accepted"
 
 # Hub: only its own mod and the shared one.
@@ -67,6 +73,9 @@ run hub RISE_SERVER_TYPES=SERVER_TYPE_HUB
 check "$status" 0 "hub starts"
 check "$(find "$app/mods" -mindepth 1 -printf '%f\n' | sort | tr '\n' ' ')" "common.jar lobby.jar " "hub mods"
 check "$([ -e "$app/universe" ] && echo present || echo absent)" absent "no world for hub"
+# No RISE_SERVER_META is a dev server: the agent loads and finds no DSN to report to.
+check "$(head -1 "$log")" "-javaagent:/opt/rise/sentry-agent.jar" "sentry agent loaded without servermeta"
+check "$(grep -c -- '--disable-sentry' "$log")" 1 "hypixel's sentry off without servermeta"
 
 # Refusals.
 run notypes RISE_SERVER_TYPES=
