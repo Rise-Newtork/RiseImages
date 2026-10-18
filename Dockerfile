@@ -14,8 +14,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system --gid 10001 hytale \
     && useradd --system --uid 10001 --gid hytale --home-dir /app --shell /usr/sbin/nologin hytale \
-    && mkdir /app \
-    && chown hytale:hytale /app
+    && mkdir -p /app/mods \
+    && chown -R hytale:hytale /app
 
 COPY --from=agent /build/build/libs/sentry-agent.jar /opt/rise/sentry-agent.jar
 COPY entrypoint.sh /usr/local/bin/entrypoint
