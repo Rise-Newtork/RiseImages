@@ -65,7 +65,10 @@ its `dsn` blank it does nothing, so a dev server reports nowhere. With a DSN:
   the same issue whatever its message;
 - `server_name` is the container name, and events carry the tags `container`, `node`,
   `server_types` and, on a hub, `hub_type` (log entries carry the same as attributes, plus
-  `logger`);
+  `logger`); one logged on a world thread whose world is named by a minted match ID
+  (`[0-9A-HJKMNP-TV-Z]{4,13}`, as RiseMinigames names a match's world) also carries `match_id`, so
+  a non-match world must never get an all-uppercase name like `SPAWN`. Printed stack traces are
+  not tagged;
 - the password in a `user:password@host` is masked.
 
 It uses the Sentry SDK the server jar bundles and ships none of its own. It has to load before the
