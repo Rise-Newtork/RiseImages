@@ -3,6 +3,7 @@ package com.risehytale.sentryagent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.sentry.SentryEvent;
@@ -229,5 +230,18 @@ class LogForwarderTest {
         assertTrue(forwarder.toLogs(Level.INFO.intValue(), "PluginManager", "Shut down plugin Rise:Lobby"));
         assertFalse(forwarder.toLogs(Level.INFO.intValue(), "HytaleServer", "====================="));
         assertTrue(forwarder.toLogs(Level.SEVERE.intValue(), "SERR", "Reallocate failed for good"));
+    }
+
+    @Test
+    void onlyAWorldNamedByAMintedIdIsAMatch() {
+        assertEquals("7M2H", LogForwarder.matchId("WorldThread - 7M2H"));
+        assertEquals("10000", LogForwarder.matchId("WorldThread - 10000"));
+        assertNull(LogForwarder.matchId("WorldThread - default"));
+        assertNull(LogForwarder.matchId("WorldThread - 3f2a6c1e-8b4d-4e0a-9c7f-1d2e3f4a5b6c"));
+        assertNull(LogForwarder.matchId("WorldThread - 7M2"));
+        assertNull(LogForwarder.matchId("WorldThread - 7MUH"));
+        assertNull(LogForwarder.matchId("WorldThread - instance-sumo-3f2a6c1e"));
+        assertNull(LogForwarder.matchId("7M2H"));
+        assertNull(LogForwarder.matchId("ShutdownHook"));
     }
 }

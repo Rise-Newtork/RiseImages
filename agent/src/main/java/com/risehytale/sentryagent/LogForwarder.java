@@ -35,6 +35,10 @@ final class LogForwarder extends CopyOnWriteArrayList<LogRecord> {
     static final String BOOT_MARKER = "Hytale Server Booted!";
     // The server colours some messages itself, inside the text.
     private static final Pattern ANSI = Pattern.compile("\u001B\\[[0-9;]*m");
+    // The engine runs each world on a thread named after it, and RiseMinigames names a match's world
+    // by its minted ID. Only that form counts: hub worlds are named by random UUIDs.
+    private static final String WORLD_THREAD = "WorldThread - ";
+    private static final Pattern MATCH_ID = Pattern.compile("[0-9A-HJKMNP-TV-Z]{4,13}");
 
     // Code that both captures or logs an exception and prints it, as LateMain does with a failed
     // start, would make two issues of one failure; the printed copy is skipped. By Throwable.toString,
@@ -83,11 +87,12 @@ final class LogForwarder extends CopyOnWriteArrayList<LogRecord> {
         }
         int level = record.getLevel().intValue();
         boolean noise = Noise.isNoise(logger, message);
+        String matchId = matchId(Thread.currentThread().getName());
         if (toLogs(level, logger, message)) {
-            log(level, logger, message);
+            log(level, logger, message, matchId);
         }
         if (level >= Level.SEVERE.intValue() && !skipped(record.getThrown())) {
-            capture(record, message);
+            capture(record, message, matchId);
         } else if (!noise) {
             breadcrumb(record.getInstant(), level, logger, message);
         }
@@ -99,7 +104,7 @@ final class LogForwarder extends CopyOnWriteArrayList<LogRecord> {
         int level = block.level().intValue();
         String text = String.join("\n", block.lines());
         if (toLogs(level, block.logger(), text)) {
-            log(level, block.logger(), text);
+            log(level, block.logger(), text, null);
         }
         if (block.isTrace() && !recentlyCaptured(block.lines().getFirst().strip())) {
             Sentry.captureEvent(PrintedTrace.event(block.lines(), Date.from(block.instant()), block.logger()), new Hint());
@@ -140,9 +145,20 @@ final class LogForwarder extends CopyOnWriteArrayList<LogRecord> {
         return !Noise.isNoise(logger, message);
     }
 
-    private void log(int level, String logger, String message) {
+    static String matchId(String thread) {
+        if (!thread.startsWith(WORLD_THREAD)) {
+            return null;
+        }
+        String world = thread.substring(WORLD_THREAD.length());
+        return MATCH_ID.matcher(world).matches() ? world : null;
+    }
+
+    private void log(int level, String logger, String message, String matchId) {
         SentryAttributes attrs = SentryAttributes.fromMap(attributes);
         attrs.add(SentryAttribute.stringAttribute("logger", logger));
+        if (matchId != null) {
+            attrs.add(SentryAttribute.stringAttribute("match_id", matchId));
+        }
         Sentry.logger().log(logLevel(level), SentryLogParameters.create(attrs), message);
     }
 
@@ -158,11 +174,14 @@ final class LogForwarder extends CopyOnWriteArrayList<LogRecord> {
         Sentry.addBreadcrumb(crumb);
     }
 
-    private void capture(LogRecord record, String message) {
+    private void capture(LogRecord record, String message, String matchId) {
         boolean uncaught = UNCAUGHT.equals(record.getSourceClassName());
         SentryEvent event = new SentryEvent(Date.from(record.getInstant()));
         event.setLevel(uncaught ? SentryLevel.FATAL : SentryLevel.ERROR);
         event.setLogger(record.getLoggerName());
+        if (matchId != null) {
+            event.setTag("match_id", matchId);
+        }
         Message sentryMessage = new Message();
         sentryMessage.setMessage(message);
         event.setMessage(sentryMessage);
