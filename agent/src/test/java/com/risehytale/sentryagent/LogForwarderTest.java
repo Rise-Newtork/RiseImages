@@ -244,4 +244,25 @@ class LogForwarderTest {
         assertNull(LogForwarder.matchId("7M2H"));
         assertNull(LogForwarder.matchId("ShutdownHook"));
     }
+
+    @Test
+    void aCodedMessageGroupsByItsCode() {
+        SentryEvent first = new SentryEvent();
+        LogForwarder.fingerprintByCode(first, "[HUBS_LOADOUT_UNSAVED] Alice timed out");
+        SentryEvent second = new SentryEvent();
+        LogForwarder.fingerprintByCode(second, "[HUBS_LOADOUT_UNSAVED] Bob connection refused");
+        assertEquals(List.of("HUBS_LOADOUT_UNSAVED"), first.getFingerprints());
+        assertEquals(first.getFingerprints(), second.getFingerprints());
+        assertEquals("HUBS_LOADOUT_UNSAVED", first.getTag("code"));
+    }
+
+    @Test
+    void anUncodedMessageKeepsDefaultGrouping() {
+        for (String message : List.of("failed to load world", "Lead [HUBS_X] not first", "[Hubs] lower case", "[0] digits", "[NPC] no underscore")) {
+            SentryEvent event = new SentryEvent();
+            LogForwarder.fingerprintByCode(event, message);
+            assertNull(event.getFingerprints(), message);
+            assertNull(event.getTag("code"), message);
+        }
+    }
 }

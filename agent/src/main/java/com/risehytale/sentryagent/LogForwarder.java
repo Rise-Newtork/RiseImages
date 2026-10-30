@@ -15,10 +15,12 @@ import io.sentry.protocol.Message;
 import java.time.Instant;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -39,6 +41,8 @@ final class LogForwarder extends CopyOnWriteArrayList<LogRecord> {
     // by its minted ID. Only that form counts: hub worlds are named by random UUIDs.
     private static final String WORLD_THREAD = "WorldThread - ";
     private static final Pattern MATCH_ID = Pattern.compile("[0-9A-HJKMNP-TV-Z]{4,13}");
+    // The mods lead a failure with a stable code, as in "[HUBS_LOADOUT_UNSAVED] <player> <error>".
+    private static final Pattern CODE = Pattern.compile("^\\[([A-Z][A-Z0-9]*_[A-Z0-9_]+)]");
 
     // Code that both captures or logs an exception and prints it, as LateMain does with a failed
     // start, would make two issues of one failure; the printed copy is skipped. By Throwable.toString,
@@ -185,6 +189,7 @@ final class LogForwarder extends CopyOnWriteArrayList<LogRecord> {
         Message sentryMessage = new Message();
         sentryMessage.setMessage(message);
         event.setMessage(sentryMessage);
+        fingerprintByCode(event, message);
         if (record.getThrown() != null) {
             Mechanism mechanism = new Mechanism();
             mechanism.setType(uncaught ? "UncaughtExceptionHandler" : "HytaleLogger");
@@ -195,6 +200,19 @@ final class LogForwarder extends CopyOnWriteArrayList<LogRecord> {
         if (uncaught) {
             // The thread is dying and may take the JVM with it before the transport gets a turn.
             SentryAgent.flush();
+        }
+    }
+
+    /**
+     * One issue per code. Left to Sentry, the player and error text in the message make every line
+     * its own issue. The code alone, not the logger: mods log through per-class loggers, which would
+     * split one code logged from two classes, and the codes already carry the mod's prefix.
+     */
+    static void fingerprintByCode(SentryEvent event, String message) {
+        Matcher code = CODE.matcher(message);
+        if (code.find()) {
+            event.setTag("code", code.group(1));
+            event.setFingerprints(List.of(code.group(1)));
         }
     }
 
